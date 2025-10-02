@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import MoviesList from "./components/MoviesList";
 import "./App.css";
 
@@ -8,11 +8,11 @@ function App() {
   const [error, setError] = useState(null);
   const retryTimeoutRef = useRef(null);
 
-  const fetchMoviesHandler = async () => {
+  const fetchMoviesHandler = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("https://swapi.info/api/fil");
+      const response = await fetch("https://swapi.info/api/films");
       const data = await response.json();
 
       const transformedMovie = data.map((movieData) => ({
@@ -30,7 +30,7 @@ function App() {
       }, 5000);
     }
     setIsLoading(false);
-  };
+  }, []);
 
   const cancelRetry = () => {
     if (retryTimeoutRef.current) {
@@ -39,6 +39,10 @@ function App() {
       setError("Retry cancelled by user.");
     }
   };
+
+  useEffect(() => {
+    fetchMoviesHandler();
+  }, [fetchMoviesHandler]);
 
   return (
     <React.Fragment>
