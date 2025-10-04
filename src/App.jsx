@@ -13,17 +13,25 @@ function App() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("https://swapi.info/api/films");
+      const response = await fetch(
+        "https://movie-website-bb07d-default-rtdb.firebaseio.com/movies.json"
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch movies.");
+      }
       const data = await response.json();
 
-      const transformedMovie = data.map((movieData) => ({
-        id: movieData.episode_id,
-        title: movieData.title,
-        openingText: movieData.opening_crawl,
-        releaseDate: movieData.release_date,
-      }));
+      const loadedMovies = [];
+      for (let key in data) {
+        loadedMovies.push({
+          id: key,
+          title: data[key].title,
+          openingText: data[key].openingText,
+          releaseDate: data[key].releaseDate,
+        });
+      }
 
-      setMovies(transformedMovie);
+      setMovies(loadedMovies);
     } catch (error) {
       setError("Something went wrong ....Retrying" || error.message);
       retryTimeoutRef.current = setTimeout(() => {
@@ -41,8 +49,47 @@ function App() {
     }
   };
 
-  const AddMovieHandler = (NewMovieObj) => {
-    console.log("NewMovieObj", NewMovieObj);
+  const AddMovieHandler = async (newMovieObj) => {
+    try {
+      const response = await fetch(
+        "https://movie-website-bb07d-default-rtdb.firebaseio.com/movies.json",
+        {
+          method: "POST",
+          body: JSON.stringify(newMovieObj),
+          headers: {
+            "content-type": "application/json",
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to add movie.");
+      }
+      const data = await response.json();
+      console.log("Movie added:", data);
+    } catch (error) {
+      setError("Failed to add movie. Please try again.");
+      console.error(error.message);
+    }
+  };
+
+  const deleteMovieHandler = async (id) => {
+    try {
+      const response = await fetch(
+        `https://movie-website-bb07d-default-rtdb.firebaseio.com/movies/${id}.json`,
+        {
+          method: "DELETE",
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to delete movie.");
+      }
+
+      setMovies((prevMovies) => prevMovies.filter((movie) => movie.id !== id));
+      console.log("Movie deleted:", id);
+    } catch (error) {
+      setError("Failed to delete movie. Please try again.");
+      console.error(error.message);
+    }
   };
 
   useEffect(() => {
@@ -57,7 +104,9 @@ function App() {
       <section>
         {isLoading && <p>Loading...</p>}
         {!isLoading && error && <p>{error}</p>}
-        {!isLoading && !error && <MoviesList movies={movies} />}
+        {!isLoading && !error && (
+          <MoviesList movies={movies} onDeleteMovie={deleteMovieHandler} />
+        )}
         {error && <button onClick={cancelRetry}>Cancel</button>}
       </section>
     </React.Fragment>
